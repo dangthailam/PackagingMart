@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 
 const PORT = process.env.PORT || 3000;
 
@@ -38,7 +39,31 @@ const server = http.createServer((req, res) => {
         res.end(`Server Error: ${error.code}`, 'utf-8');
       }
     } else {
-      res.writeHead(200, { 'Content-Type': contentType });
+      // Enable gzip compression for JSON files
+      if (extname === '.json') {
+        const acceptEncoding = req.headers['accept-encoding'] || '';
+        if (acceptEncoding.includes('gzip')) {
+          zlib.gzip(content, (err, compressed) => {
+            if (err) {
+              res.writeHead(500);
+              res.end('Compression error');
+              return;
+            }
+            res.writeHead(200, { 
+              'Content-Type': contentType,
+              'Content-Encoding': 'gzip',
+              'Cache-Control': 'public, max-age=31536000'
+            });
+            res.end(compressed);
+          });
+          return;
+        }
+      }
+      
+      res.writeHead(200, { 
+        'Content-Type': contentType,
+        'Cache-Control': extname === '.json' ? 'public, max-age=31536000' : 'no-cache'
+      });
       res.end(content, 'utf-8');
     }
   });

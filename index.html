@@ -330,9 +330,42 @@
         let allProducts = [];
         let filteredProducts = [];
 
-        // Load data
+        // Show loading progress
+        const loadingEl = document.querySelector('.loading');
+        
+        // Load data with progress
         fetch('products.json')
-            .then(response => response.json())
+            .then(response => {
+                const contentLength = response.headers.get('content-length');
+                if (!contentLength) {
+                    return response.json();
+                }
+                
+                const total = parseInt(contentLength, 10);
+                let loaded = 0;
+                
+                const reader = response.body.getReader();
+                const stream = new ReadableStream({
+                    start(controller) {
+                        function push() {
+                            reader.read().then(({ done, value }) => {
+                                if (done) {
+                                    controller.close();
+                                    return;
+                                }
+                                loaded += value.byteLength;
+                                const percent = Math.round((loaded / total) * 100);
+                                loadingEl.textContent = `⏳ Đang tải... ${percent}%`;
+                                controller.enqueue(value);
+                                push();
+                            });
+                        }
+                        push();
+                    }
+                });
+                
+                return new Response(stream).json();
+            })
             .then(data => {
                 allProducts = data.products;
                 filteredProducts = allProducts;
@@ -342,7 +375,7 @@
             })
             .catch(error => {
                 document.getElementById('productsContainer').innerHTML = 
-                    '<div class="no-results">❌ Không thể tải dữ liệu. Vui lòng kiểm tra file products copy.json</div>';
+                    '<div class="no-results">❌ Không thể tải dữ liệu. Vui lòng thử lại</div>';
             });
 
         function initializeFilters() {
