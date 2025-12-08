@@ -62,10 +62,6 @@
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
-        select.search-input {
-            cursor: pointer;
-        }
-
         .stats {
             display: flex;
             justify-content: space-between;
@@ -93,7 +89,7 @@
 
         .products-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 20px;
         }
 
@@ -132,57 +128,12 @@
             padding: 20px;
         }
 
-        .product-category {
-            color: #667eea;
-            font-size: 0.85em;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
         .product-name {
-            font-size: 1.1em;
+            font-size: 1em;
             font-weight: bold;
-            margin-bottom: 10px;
             color: #333;
             line-height: 1.4;
-        }
-
-        .product-price {
-            font-size: 1.3em;
-            color: #e91e63;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .product-reference {
-            color: #999;
-            font-size: 0.9em;
-            margin-bottom: 10px;
-        }
-
-        .product-attributes {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
-        }
-
-        .attribute-tag {
-            background: #f0f0f0;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            color: #666;
-        }
-
-        .product-description {
-            color: #666;
-            font-size: 0.9em;
-            margin-top: 10px;
-            line-height: 1.5;
-            max-height: 60px;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            min-height: 50px;
         }
 
         .loading {
@@ -190,6 +141,7 @@
             padding: 50px;
             font-size: 1.5em;
             color: #667eea;
+            grid-column: 1 / -1;
         }
 
         .no-results {
@@ -197,6 +149,7 @@
             padding: 50px;
             color: #999;
             font-size: 1.2em;
+            grid-column: 1 / -1;
         }
 
         .clear-filters {
@@ -308,10 +261,6 @@
                 <div class="stats-number" id="displayedProducts">0</div>
                 <div class="stats-label">Đang hiển thị</div>
             </div>
-            <div class="stats-item">
-                <div class="stats-number" id="totalCategories">0</div>
-                <div class="stats-label">Danh mục</div>
-            </div>
         </div>
 
         <div id="productsContainer" class="products-grid">
@@ -330,42 +279,9 @@
         let allProducts = [];
         let filteredProducts = [];
 
-        // Show loading progress
-        const loadingEl = document.querySelector('.loading');
-        
-        // Load data with progress
-        fetch('products.json')
-            .then(response => {
-                const contentLength = response.headers.get('content-length');
-                if (!contentLength) {
-                    return response.json();
-                }
-                
-                const total = parseInt(contentLength, 10);
-                let loaded = 0;
-                
-                const reader = response.body.getReader();
-                const stream = new ReadableStream({
-                    start(controller) {
-                        function push() {
-                            reader.read().then(({ done, value }) => {
-                                if (done) {
-                                    controller.close();
-                                    return;
-                                }
-                                loaded += value.byteLength;
-                                const percent = Math.round((loaded / total) * 100);
-                                loadingEl.textContent = `⏳ Đang tải... ${percent}%`;
-                                controller.enqueue(value);
-                                push();
-                            });
-                        }
-                        push();
-                    }
-                });
-                
-                return new Response(stream).json();
-            })
+        // Load data
+        fetch('products-simple-filtered.json')
+            .then(response => response.json())
             .then(data => {
                 allProducts = data.products;
                 filteredProducts = allProducts;
@@ -379,6 +295,7 @@
             });
 
         function initializeFilters() {
+            // Populate category dropdown
             const categories = [...new Set(allProducts.map(p => p.category))].sort();
             const categorySelect = document.getElementById('categoryFilter');
             
@@ -389,11 +306,10 @@
                 categorySelect.appendChild(option);
             });
 
+            // Add event listeners
             document.getElementById('searchInput').addEventListener('input', filterProducts);
-            document.getElementById('categoryFilter').addEventListener('change', filterProducts);
-            document.getElementById('subcategoryFilter').addEventListener('change', filterProducts);
-            
             document.getElementById('categoryFilter').addEventListener('change', updateSubcategories);
+            document.getElementById('subcategoryFilter').addEventListener('change', filterProducts);
         }
 
         function updateSubcategories() {
@@ -426,11 +342,7 @@
             const subcategory = document.getElementById('subcategoryFilter').value;
 
             filteredProducts = allProducts.filter(product => {
-                const matchesSearch = !searchTerm || 
-                    product.name.toLowerCase().includes(searchTerm) ||
-                    product.description.toLowerCase().includes(searchTerm) ||
-                    product.reference.toLowerCase().includes(searchTerm);
-                
+                const matchesSearch = !searchTerm || product.name.toLowerCase().includes(searchTerm);
                 const matchesCategory = !category || product.category === category;
                 const matchesSubcategory = !subcategory || product.subcategory === subcategory;
 
@@ -450,42 +362,22 @@
             }
 
             container.innerHTML = filteredProducts.map(product => `
-                <div class="product-card" onclick="showProductDetail(${JSON.stringify(product).replace(/"/g, '&quot;')})">
-                    ${product.photos && product.photos.length > 0 && product.photos[0] !== 'Không có ảnh' 
-                        ? `<img src="${product.photos[0]}" alt="${product.name}" class="product-image" onerror="this.outerHTML='<div class=\\'product-image no-image\\'>📦 Không có ảnh</div>'">`
+                <div class="product-card" onclick="showProductDetail('${product.name.replace(/'/g, "\\'")}', '${product.photo ? product.photo.replace(/'/g, "\\'") : ''}', '${product.category}', '${product.subcategory}')">
+                    ${product.photo 
+                        ? `<img src="${product.photo}" alt="${product.name}" class="product-image" onerror="this.outerHTML='<div class=\\'product-image no-image\\'>📦 Không có ảnh</div>'"`
                         : '<div class="product-image no-image">📦 Không có ảnh</div>'
                     }
                     <div class="product-info">
-                        <div class="product-category">${product.category} › ${product.subcategory}</div>
+                        <div class="product-category" style="font-size: 0.85em; color: #667eea; margin-bottom: 5px;">${product.category}</div>
                         <div class="product-name">${product.name}</div>
-                        <div class="product-price">${product.price}</div>
-                        <div class="product-reference">Mã: ${product.reference}</div>
-                        ${getAttributeTags(product)}
-                        ${product.description !== 'N/A' ? `<div class="product-description">${product.description}</div>` : ''}
                     </div>
                 </div>
             `).join('');
         }
 
-        function getAttributeTags(product) {
-            const attrs = [];
-            if (product.attributes.color && product.attributes.color !== 'N/A') {
-                attrs.push(`<span class="attribute-tag">🎨 ${product.attributes.color}</span>`);
-            }
-            if (product.attributes.dimension && product.attributes.dimension !== 'N/A') {
-                attrs.push(`<span class="attribute-tag">📏 ${product.attributes.dimension}</span>`);
-            }
-            if (product.attributes.matter && product.attributes.matter !== 'N/A') {
-                attrs.push(`<span class="attribute-tag">🧱 ${product.attributes.matter}</span>`);
-            }
-            return attrs.length > 0 ? `<div class="product-attributes">${attrs.join('')}</div>` : '';
-        }
-
         function updateStats() {
             document.getElementById('totalProducts').textContent = allProducts.length;
             document.getElementById('displayedProducts').textContent = filteredProducts.length;
-            const uniqueCategories = new Set(allProducts.map(p => p.category));
-            document.getElementById('totalCategories').textContent = uniqueCategories.size;
         }
 
         function clearFilters() {
@@ -495,66 +387,18 @@
             filterProducts();
         }
 
-        function showProductDetail(product) {
+        function showProductDetail(name, photo, category, subcategory) {
             const modal = document.getElementById('productModal');
             const content = document.getElementById('modalContent');
             
             content.innerHTML = `
-                ${product.photos && product.photos.length > 0 && product.photos[0] !== 'Không có ảnh'
-                    ? `<img src="${product.photos[0]}" alt="${product.name}" class="modal-image" onerror="this.style.display='none'">`
+                ${photo
+                    ? `<img src="${photo}" alt="${name}" class="modal-image" onerror="this.style.display='none'">`
                     : ''
                 }
-                <div class="product-category">${product.category} › ${product.subcategory}</div>
-                <h2 style="margin: 20px 0; color: #333;">${product.name}</h2>
-                <div class="product-price" style="font-size: 1.8em; margin: 15px 0;">${product.price}</div>
-                <div class="product-reference" style="margin: 10px 0;">Mã sản phẩm: ${product.reference}</div>
-                
-                ${product.description !== 'N/A' ? `
-                    <div style="margin: 20px 0;">
-                        <h3 style="color: #667eea; margin-bottom: 10px;">Mô tả</h3>
-                        <p style="line-height: 1.6; color: #666;">${product.description}</p>
-                    </div>
-                ` : ''}
-                
-                <div style="margin: 20px 0;">
-                    <h3 style="color: #667eea; margin-bottom: 10px;">Thông tin chi tiết</h3>
-                    <table style="width: 100%; border-collapse: collapse;">
-                        ${product.attributes.color && product.attributes.color !== 'N/A' ? `
-                            <tr style="border-bottom: 1px solid #eee;">
-                                <td style="padding: 10px; font-weight: bold;">Màu sắc:</td>
-                                <td style="padding: 10px;">${product.attributes.color}</td>
-                            </tr>
-                        ` : ''}
-                        ${product.attributes.dimension && product.attributes.dimension !== 'N/A' ? `
-                            <tr style="border-bottom: 1px solid #eee;">
-                                <td style="padding: 10px; font-weight: bold;">Kích thước:</td>
-                                <td style="padding: 10px;">${product.attributes.dimension}</td>
-                            </tr>
-                        ` : ''}
-                        ${product.attributes.matter && product.attributes.matter !== 'N/A' ? `
-                            <tr style="border-bottom: 1px solid #eee;">
-                                <td style="padding: 10px; font-weight: bold;">Chất liệu:</td>
-                                <td style="padding: 10px;">${product.attributes.matter}</td>
-                            </tr>
-                        ` : ''}
-                        ${product.attributes.quantity && product.attributes.quantity !== 'N/A' ? `
-                            <tr style="border-bottom: 1px solid #eee;">
-                                <td style="padding: 10px; font-weight: bold;">Số lượng:</td>
-                                <td style="padding: 10px;">${product.attributes.quantity}</td>
-                            </tr>
-                        ` : ''}
-                    </table>
-                </div>
-                
-                ${product.url !== 'N/A' ? `
-                    <a href="${product.url}" target="_blank" 
-                       style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; 
-                              border-radius: 10px; text-decoration: none; margin-top: 20px; transition: all 0.3s;"
-                       onmouseover="this.style.background='#5568d3'" 
-                       onmouseout="this.style.background='#667eea'">
-                        🔗 Xem trên website chính thức
-                    </a>
-                ` : ''}
+                <div style="color: #667eea; font-size: 0.9em; margin-bottom: 10px;">${category} › ${subcategory}</div>
+                <h2 style="margin: 20px 0; color: #333;">${name}</h2>
+                <p style="color: #666; font-size: 1.1em;">Tên sản phẩm: <strong>${name}</strong></p>
             `;
             
             modal.style.display = 'block';
