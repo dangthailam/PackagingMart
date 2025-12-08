@@ -396,9 +396,22 @@
                     ? `<img src="${photo}" alt="${name}" class="modal-image" onerror="this.style.display='none'">`
                     : ''
                 }
-                <div style="color: #667eea; font-size: 0.9em; margin-bottom: 10px;">${category} › ${subcategory}</div>
+                <div style="color: #667eea; font-size: 0.9em; margin-bottom: 10px;">📁 ${category} › ${subcategory}</div>
                 <h2 style="margin: 20px 0; color: #333;">${name}</h2>
-                <p style="color: #666; font-size: 1.1em;">Tên sản phẩm: <strong>${name}</strong></p>
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-top: 20px;">
+                    <div style="margin-bottom: 15px;">
+                        <div style="color: #666; font-size: 0.9em; font-weight: bold; margin-bottom: 5px;">📂 Danh mục</div>
+                        <div style="color: #333; font-size: 1.1em;">${category}</div>
+                    </div>
+                    <div>
+                        <div style="color: #666; font-size: 0.9em; font-weight: bold; margin-bottom: 5px;">📑 Danh mục phụ</div>
+                        <div style="color: #333; font-size: 1.1em;">${subcategory}</div>
+                    </div>
+                </div>
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #eee;">
+                    <div style="color: #666; font-size: 0.9em; font-weight: bold; margin-bottom: 5px;">🏷️ Tên sản phẩm</div>
+                    <div style="color: #333; font-size: 1.1em; font-weight: bold;">${name}</div>
+                </div>
             `;
             
             modal.style.display = 'block';
