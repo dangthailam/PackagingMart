@@ -241,7 +241,6 @@
         
         <div class="search-section">
             <div class="search-grid">
-                <input type="text" id="searchInput" class="search-input" placeholder="🔍 Tìm kiếm sản phẩm...">
                 <select id="categoryFilter" class="search-input">
                     <option value="">📁 Tất cả danh mục</option>
                 </select>
@@ -307,7 +306,6 @@
             });
 
             // Add event listeners
-            document.getElementById('searchInput').addEventListener('input', filterProducts);
             document.getElementById('categoryFilter').addEventListener('change', updateSubcategories);
             document.getElementById('subcategoryFilter').addEventListener('change', filterProducts);
         }
